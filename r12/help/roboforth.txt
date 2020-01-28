@@ -1,0 +1,10 @@
+  ROBOFORTH  Initialize the ROBOFORTH interpreter.
+  START      Start the robot.
+  CALIBRATE  Tell the arm to calibrate itself.
+  READY      Send the arm to the READY position.
+  HOME       Send the arm to the HOME position.
+
+  [X Y Z] MOVE    Relative move.
+  [X Y Z] MOVETO  Absolute move.
+  [VAR] ?         Print variable VAR's value.
+  [VAL] [VAR] !   Set value of variable VAR to VAL.
