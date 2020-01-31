@@ -49,7 +49,7 @@ class Detector(object):
             if key == ord("q"):
                 break
             
-    def detect_rect_from_hue(self, frame, hue_min):
+    def detect_contours_from_hue(self, frame, hue_min):
         colourLower = (int(hue_min), 70, 10)
         colourUpper = (int(hue_min) + 30, 255, 255)
         
@@ -67,6 +67,11 @@ class Detector(object):
         cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
                                 cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
+        return cnts, mask
+    
+    def detect_rect_from_hue(self, frame, hue_min):
+        
+        cnts, mask = self.detect_contours_from_hue(frame, hue_min)
         x,y,w,h=None,None,None,None
         
         # only proceed if at least one contour was found
@@ -85,3 +90,22 @@ class Detector(object):
                 display = np.concatenate((frame, np.stack((mask, mask, mask), 2)), 1)
                 cv2.imshow("Frame", display)
         return x,y,w,h
+    
+    def detect_markers_from_hue(self, frame, hue_min):
+        cnts, mask = self.detect_contours_from_hue(frame, hue_min)
+        # only proceed if both contours were found
+        centers = [None] * 2
+        radius = [None] * 2
+        if len(cnts) > 1:
+            cnts.sort(key=cv2.contourArea, reverse=True)
+            marker_c = cnts[:2]
+
+            for i, c in enumerate(marker_c):
+                centers[i], radius[i] = cv2.minEnclosingCircle(c)
+            print(centers, radius)
+            if self.visualise:
+                cv2.circle(frame,(int(centers[0][0]),int(centers[0][1])),int(radius[0]),(0, 0, 255), 2)
+                cv2.circle(frame,(int(centers[1][0]),int(centers[1][1])),int(radius[1]),(0, 0, 255), 2)
+                display = np.concatenate((frame, np.stack((mask, mask, mask), 2)), 1)
+                cv2.imshow("Frame", display)
+        return centers, radius
