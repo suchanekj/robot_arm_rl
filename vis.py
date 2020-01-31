@@ -99,10 +99,9 @@ class Detector(object):
         if len(cnts) > 1:
             cnts.sort(key=cv2.contourArea, reverse=True)
             marker_c = cnts[:2]
-
             for i, c in enumerate(marker_c):
                 centers[i], radius[i] = cv2.minEnclosingCircle(c)
-            print(centers, radius)
+                
             if self.visualise:
                 cv2.circle(frame,(int(centers[0][0]),int(centers[0][1])),int(radius[0]),(0, 0, 255), 2)
                 cv2.circle(frame,(int(centers[1][0]),int(centers[1][1])),int(radius[1]),(0, 0, 255), 2)
