@@ -23,7 +23,7 @@ class Robot():
         print(self.arm.read())
         self.arm.write('START')
         print(self.arm.read())
-
+        self.mode = None # TODO keep last chosen mode (JOINT or CARTESIAN) as attribute
         # TODO maybe move the following out of initialization and into
         # individual methods
 
@@ -117,8 +117,8 @@ class Robot():
         # does not return the rest because it should stay constant
         self.arm.write('WHERE')
         return_msg = self.arm.read().split()
-        lhand_pos = return_msg[-4]
-        wrist_pos = return_msg[-3]
+        lhand_pos = int(return_msg[-4])
+        wrist_pos = int(return_msg[-3])
         return lhand_pos, wrist_pos
 
     def get_ready(self):
@@ -145,3 +145,22 @@ class Robot():
         print(self.arm.read())
         self.arm.write('TELL WRIST -1600 MOVETO')
         print(self.arm.read())
+
+    def is_safe(self, action, hand_min=-2000, hand_max=6800):
+    	""" Checks whether the action passed to the robot is safe
+    	action is a string of ROBOFORTH command to robot"""
+    	# TODO Fix get_position such that cartesian would not cause bug
+
+    	self.to_joint() # TODO fix this
+    	hand_coords = self.get_position()
+
+    	if (action.split()[0] == "TELL") and (action.split()[1] == "HAND"):
+    		# TODO add differentiation for relative and absolute commands (MOVE/MOVETO)
+    		hand_movement = int(action.split()[2])
+
+
+    		if (hand_coords[0] + hand_movement < hand_min) or (hand_coords[0] + hand_movement > hand_max):
+    			raise Exception('Motion is not safe!')
+
+
+
