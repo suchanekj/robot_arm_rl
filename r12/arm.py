@@ -99,6 +99,9 @@ class Arm(object):
         if port is None: # '/dev/ttyUSB*'
             self.port = search_for_port('/dev/tty.usbserial*', 'ROBOFORTH\r\n',
                                         'ROBOFORTH')
+            #for windows
+            if self.port is None:
+                self.port = "COM3"
         else:
             self.port = port
 
