@@ -1,4 +1,9 @@
 __pycache__/
+
 .DS_Store
+
+r12/__pycache__/
+
+r12/.DS_Store
 
 robot_testing.py
