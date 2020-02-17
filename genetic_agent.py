@@ -110,7 +110,12 @@ class GeneticAgent(object):
             vec1[idx] = vec2[idx]
             vec2[idx] = temp
         return vec1, vec2
-  
+    
+    def get_nearby_trajectory(self, vec, idx1=0, idx2=-1):
+        # Modify the trajectory between given indices
+        new_trajectory = (np.random.random()*0.1+0.95)*vec
+        return new_trajectory
+    
 def main():
     geneticAgent = GeneticAgent(0.3, 0.5, 0.2, 1.0, 1, 1, [[0, 1], [0, 1]], 10)
     old_generation = np.array([[[0.2, 0.7], 5], [[0.1, 0.8], 5], [[0.3, 0.4],5]])
