@@ -5,7 +5,10 @@ Created on Mon Feb 17 14:38:47 2020
 
 @author: stan
 """
+from datetime import datetime
 import glob
+import json
+import numpy as np
 import serial
 import time
 
@@ -47,24 +50,39 @@ class ForceSensor(object):
             raise Exception('Port not found')
         self.ser = arduino_serial_port(self.port)
         
+    def get_forces_from_reading(self, line):
+        if len(line)>=14:
+            fv = float(line.split(b' ')[0])
+            fh1 = float(line.split(b' ')[1])
+            fh2 = float(line.split(b' ')[2])
+            return fv, fh1, fh2
+        
     def test_connection(self):
+        ts = time.time()
+        while time.time()-ts<20:
+            line = self.ser.readline()[:-2]
+            print(line)
+            print(self.get_forces_from_reading(line))
+    
+    def log_pickup(self):
+        force_readings = []
         ts = time.time()
         while time.time()-ts<15:
             line = self.ser.readline()[:-2]
-            if len(line)>=13:
-                fv = float(line.split(b' ')[0])
-                fh1 = float(line.split(b' ')[1])
-                print(fv, fh1)
-    """
-    def log_pickup(self, success):
-        # success indicates if the pickup was successful or not
-        # s means successful
-        # u means unsuccessful
-        # p means partially successful
-        ts = time.time()
-    """    
+            if len(line)>=14:
+                fv, fh1, fh2 = self.get_forces_from_reading(line)
+                force_readings.append([fv, fh1, fh2])
+        force_readings = np.array(force_readings)
+        result_dict = {'fv':list(force_readings[:, 0]),'fh1':list(force_readings[:, 1]),
+                       'fh2':list(force_readings[:, 2])}
+        success = input('Success?')
+        fname = str(datetime.now().strftime('%Y%m-%d%H-%M%S-'))+success+'.json'
+        with open(fname, 'w+') as f:
+            json.dump(result_dict, f)
+        print(success, fname, result_dict)
+    
     def __del__(self):
         self.ser.close()
         
 forceSensor = ForceSensor()
-forceSensor.test_connection()
+forceSensor.log_pickup()
