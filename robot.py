@@ -11,11 +11,6 @@ import sys
 from r12 import arm
 
 
-# TODO Implement separate ActionChecker class to check if actions are safe
-#class ActionChecker():
-""" Class used in movement methods of the Robot class"""
-
-
 class Robot():
     """ Class for high level control of the r12 arm """
 
@@ -141,6 +136,8 @@ class Robot():
         if self.mode == 'c':
             self.arm.write('WHERE')
             reading = self.arm.read()
+            # TEMP
+            print(reading)
             reading_split = reading.split()
 
             coords = [int(float(reading_split[8])*10), int(float(reading_split[9])*10),
@@ -171,10 +168,9 @@ class Robot():
 
     def move_by_cart(self, x, y, z, print_read=True):
         """ Moves BY a specified number in x, y, z directions"""
-        # TEMP
-        raise NotImplementedError('Safeguarding currently not supported')
-        # TEMP end
         if self.mode == 'c':
+            #action_now = '{} {} {} MOVE'.format(x, y, z)
+            #self.is_safe_cartesian(action_now)
             self.arm.write('{} {} {} MOVE'.format(x, y, z))
             reading = self.arm.read()
             if print_read:
@@ -185,13 +181,10 @@ class Robot():
             self.to_joint(print_read=False)
 
 
-    def move_to_cart(self, x, y, z, print_read=True, check_safe=True):
+    def move_to_cart(self, x, y, z, print_read=True):
         """ Moves TO a specified number in x, y, z directions"""
         if self.mode == 'c':
-            command = '{} {} {} MOVETO'.format(x, y, z)
-            if check_safe:
-                self.check_safe_cartesian(command) 
-            self.arm.write(command)
+            self.arm.write('{} {} {} MOVETO'.format(x, y, z))
             reading = self.arm.read()
             if print_read:
                 print(reading)
@@ -200,117 +193,6 @@ class Robot():
             self.move_to_cart(x,y,z)
             self.to_joint(print_read=False)
 
-
-    def move_by_joint(self, hand, wrist, print_read=True):
-        """ Moves BY a specified number in hand and wrist directions"""
-        # TEMP
-        raise NotImplementedError('Safeguarding currently not supported')
-        # TEMP end
-        if self.mode == 'j':
-            self.arm.write('TELL HAND {} MOVE'.format(hand))
-            reading = self.arm.read()
-            if print_read:
-                print(reading)
-
-            self.arm.write('TELL WRIST {} MOVE'.format(wrist))
-            reading = self.arm.read()
-            if print_read:
-                print(reading)
-        else:
-            self.to_joint(print_read=False)
-            self.move_by_joint(hand, wrist)
-            self.to_cartesian(print_read=False)
-
-
-    def move_to_joint(self, hand, wrist, print_read=True, check_safe=True):
-        """ Moves TO a specified number in hand and wrist directions"""
-        if self.mode == 'j':
-            command = 'TELL HAND {} MOVETO'.format(hand)
-            if check_safe:
-                self.check_safe_joint(command) 
-            self.arm.write(command)
-            reading = self.arm.read()
-            if print_read:
-                print(reading)
-
-            command = 'TELL HAND {} MOVETO'.format(hand)
-            if check_safe:
-                self.check_safe_joint(command)
-            self.arm.write(command)
-            reading = self.arm.read()
-            if print_read:
-                print(reading)
-        else:
-            self.to_joint(print_read=False)
-            self.move_by_joint(hand, wrist)
-            self.to_cartesian(print_read=False)
-
-    # Joint movements (except for that of the hand and wrist) not supported
-    
-
-    def check_safe_joint(self, action, hand_min=-2000, hand_max=6800):
-        """ Checks whether the action passed to the robot is safe
-        action is a string of ROBOFORTH command to robot"""
-        # TODO Fix get_position such that cartesian would not cause bug
-
-        self.to_joint() # TODO fix this
-        hand_coords = self.get_joint_pos()
-        print("joint coords", hand_coords)
-
-        if (action.split()[0] == "TELL") and (action.split()[1] == "HAND"):
-            # TODO add differentiation for relative and absolute commands (MOVE/MOVETO)
-            hand_movement = int(action.split()[2])
-
-        if (hand_coords[0] + hand_movement < hand_min) or (hand_coords[0] + hand_movement > hand_max):
-            raise Exception('Motion is not safe!')
-
-
-    def check_safe_cartesian(self, action, x_min = -2000, x_max = 2000, 
-            y_min = 2000, y_max = 4500, z_min = -1500, z_max = 2000):
-        """ Checks whether the action passed to the robot is safe
-        action is a string of ROBOFORTH command to robot"""
-        # TODO Fix get_position such that cartesian would not cause bug
-
-        self.to_cartesian(print_read=False)
-        hand_coords = self.get_cart_pos()
-
-        if (action.split()[3] == "MOVETO"):
-            x_movement = int(action.split()[0])
-            y_movement = int(action.split()[1])
-            z_movement = int(action.split()[2])
-            # pitch = int(action.split()[3])
-
-            if (x_movement < x_min) or (x_movement > x_max):
-                    raise Exception('Motion is not safe!')
-            if (z_movement < z_min) or (z_movement > z_max):
-                    raise Exception('Motion is not safe!')
-            if (hand_coords[2]== 0):
-                if (y_movement < y_min ) or (y_movement > y_max):
-                    raise Exception('Motion is not safe!')
-            elif (hand_coords[2] < 0) and (hand_coords[2] > -1000):
-                pass #check pitch #We dont have to check pitch as cartesian movement does not change it AS
-            elif (hand_coords[2] <= -1000) and (hand_coords[2] > -1500):
-                pass #check pitch
-        
-        if (action.split()[3] == "MOVE"):
-            x_movement = int(action.split()[0])
-            y_movement = int(action.split()[1])
-            z_movement = int(action.split()[2])
-
-            if (x_movement + hand_coords[0] < x_min) or (x_movement + hand_coords[0] > x_max):
-                    raise Exception('Motion is not safe!')
-            if (z_movement + hand_coords[2]< z_min) or (z_movement + hand_coords[2] > z_max):
-                raise Exception('Motion is not safe!')
-            if (hand_coords[2]== 0):
-                if (y_movement + hand_coords[1] < y_min ) or (y_movement + hand_coords[1] > y_max):
-                    print(y_movement + hand_coords[1])
-                    raise Exception('Motion is not safe!')
-            elif (hand_coords[2] < 0) and (hand_coords[2] > -1000):
-                pass #check pitch
-            elif (hand_coords[2] <= -1000) and (hand_coords[2] > -1500):
-                pass #check pitch
-            
-            
     def write_command(self, command, print_read=True):
         """ Writes a passed command argument to the robot arm,
         expects ROBOFORTH language
@@ -344,13 +226,129 @@ class Robot():
         self.energised = None
         self.calibrated = None
 
+    def rotate_by(self, joint, dirn=1, deg=120):
+        # dirn is 1 or -1 moves joint in opposite directions
+        if self.mode == 'j':
+            deg = deg*dirn
+            # move arm
+            if joint == 'L-HAND':            
+                self.arm.write('TELL L-HAND WRIST {} {} MOVE'.format(deg, deg))
+            else:
+                self.arm.write('TELL {} {} MOVE'.format(joint, deg))
+            # wait for return message
+            return_msg = self.arm.read()
+            # reset to original position if encountered a problem
+            if return_msg.split()[-2] != 'OK':
+                self.reset()
     
+    def is_safe_joint(self, action, hand_min=-2000, hand_max=6800):
+        """ Checks whether the action passed to the robot is safe
+        action is a string of ROBOFORTH command to robot"""
+        # TODO Fix get_position such that cartesian would not cause bug
 
+        self.to_joint() # TODO fix this
+        hand_coords = self.get_joint_pos()
+        print("joint coords", hand_coords)
+
+        if (action.split()[0] == "TELL") and (action.split()[1] == "HAND"):
+            # TODO add differentiation for relative and absolute commands (MOVE/MOVETO)
+            hand_movement = int(action.split()[2])
+
+        if (hand_coords[0] + hand_movement < hand_min) or (hand_coords[0] + hand_movement > hand_max):
+            raise Exception('Motion is not safe!')
+
+    def is_safe_cartesian(self, action, x_min = -2000, x_max = 2000, 
+            y_min = 2000, y_max = 4500, z_min = -1500, z_max = 2000):
+        """ Checks whether the action passed to the robot is safe
+        action is a string of ROBOFORTH command to robot"""
+        # TODO Fix get_position such that cartesian would not cause bug
+
+        self.to_cartesian()
+        hand_coords = self.get_cart_pos()
+
+        if (action.split()[3] == "MOVETO"):
+            x_movement = int(action.split()[0])
+            y_movement = int(action.split()[1])
+            z_movement = int(action.split()[2])
+            pitch = int(action.split()[3])
+
+            if (x_movement < x_min) or (x_movement > x_max):
+                    raise Exception('Motion is not safe!')
+            if (z_movement < z_min) or (z_movement > z_max):
+                    raise Exception('Motion is not safe!')
+            if (hand_coords[2]== 0):
+                if (y_movement < y_min ) or (y_movement > y_max):
+                    raise Exception('Motion is not safe!')
+            elif (hand_coords[2] < 0) and (hand_coords[2] > -1000):
+                pass #check pitch
+            elif (hand_coords[2] <= -1000) and (hand_coords[2] > -1500):
+                pass #check pitch
+            
+        if (action.split()[3] == "MOVE"):
+            x_movement = int(action.split()[0])
+            y_movement = int(action.split()[1])
+            z_movement = int(action.split()[2])
+
+            if (x_movement + hand_coords[0] < x_min) or (x_movement + hand_coords[0] > x_max):
+                    raise Exception('Motion is not safe!')
+            if (z_movement + hand_coords[2]< z_min) or (z_movement + hand_coords[2] > z_max):
+                raise Exception('Motion is not safe!')
+            if (hand_coords[2]== 0):
+                if (y_movement + hand_coords[1] < y_min ) or (y_movement + hand_coords[1] > y_max):
+                    print(y_movement + hand_coords[1])
+                    raise Exception('Motion is not safe!')
+            elif (hand_coords[2] < 0) and (hand_coords[2] > -1000):
+                pass #check pitch
+            elif (hand_coords[2] <= -1000) and (hand_coords[2] > -1500):
+                pass #check pitch
+            
+    def run_encoded_pickup(self):
+        inp = input('Start')
+        
+        # GET TO POSITION 1
+        self.arm.write('TELL WAIST -127 MOVETO')
+        print(self.arm.read())
+        self.arm.write('TELL SHOULDER 3437 MOVETO')
+        print(self.arm.read())
+        self.arm.write('TELL L-HAND 757 MOVETO')
+        print(self.arm.read())
+        self.arm.write('TELL WRIST -2854 MOVETO')
+        print(self.arm.read())
+        self.arm.write('TELL ELBOW 6011 MOVETO')
+        
+        inp = input('Position 1 achieved, proceed?')
+        
+        self.arm.write('CARTESIAN')
+        print(self.arm.read())
+        self.arm.write('100 -800 -500 MOVE')
+        print(self.arm.read())
+        self.arm.write('JOINT')
+        print(self.arm.read())
+        self.arm.write('TELL WRIST -2000 MOVE')
+        print(self.arm.read())
+        
+        
+        inp = input('Position 2 achieved, proceed?')
+        
+        
+        self.arm.write('CARTESIAN')
+        print(self.arm.read())
+        self.arm.write('100 400 -100 MOVE')
+        print(self.arm.read())
+        self.arm.write('JOINT')
+        print(self.arm.read())
+        self.arm.write('TELL L-HAND WRIST -1000 MOVE')
+        print(self.arm.read())
+        
+        inp = input('Position 3 achieved, proceed?')
+        
+        self.arm.write('CARTESIAN')
+        print(self.arm.read())
+        self.arm.write('0 0 1500 MOVE')
+        print(self.arm.read())
+        
+        
     # OLD FUNCTIONS
-
-    # DEPRECATED
-
-    """
 
     def rotate_by_old(self, joint, dirn=1, deg=120):
         # dirn is 1 or -1 moves joint in opposite directions
@@ -398,13 +396,11 @@ class Robot():
         print(self.arm.read())
         self.arm.write('TELL WRIST -1600 MOVETO')
         print(self.arm.read())
-"""
-"""
 
     def is_safe(self, action, hand_min=-2000, hand_max=6800):
-    	# Checks whether the action passed to the robot is safe
-    	#action is a string of ROBOFORTH command to robot
-    	## TODO Fix get_position such that cartesian would not cause bug
+    	""" Checks whether the action passed to the robot is safe
+    	action is a string of ROBOFORTH command to robot"""
+    	# TODO Fix get_position such that cartesian would not cause bug
 
     	self.to_joint() # TODO fix this
     	hand_coords = self.get_joint_pos()
@@ -417,6 +413,6 @@ class Robot():
     		if (hand_coords[0] + hand_movement < hand_min) or (hand_coords[0] + hand_movement > hand_max):
     			raise Exception('Motion is not safe!')
 
-        """
+        
 
 
