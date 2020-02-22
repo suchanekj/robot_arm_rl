@@ -47,8 +47,13 @@ class ForceSensor(object):
         if port:
             self.port = port
         else:
-            raise Exception('Port not found')
-        self.ser = arduino_serial_port(self.port)
+            manual_port = input("Enter port Arduino is connected to (e.g. COM4): ")
+            print("Selected port", manual_port)
+            self.port = manual_port
+        try:
+            self.ser = arduino_serial_port(self.port)
+        except:
+            raise Exception("Port not found")
         
     def get_forces_from_reading(self, line):
         if len(line)>=14:
@@ -85,4 +90,5 @@ class ForceSensor(object):
         self.ser.close()
         
 forceSensor = ForceSensor()
+#forceSensor.test_connection()
 forceSensor.log_pickup()
