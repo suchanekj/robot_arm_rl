@@ -64,24 +64,25 @@ class ForceSensor(object):
         
     def test_connection(self):
         ts = time.time()
-        while time.time()-ts<20:
+        while time.time()-ts<10:
             line = self.ser.readline()[:-2]
-            print(line)
+            #print(line)
             print(self.get_forces_from_reading(line))
     
     def log_pickup(self):
         force_readings = []
         ts = time.time()
-        while time.time()-ts<15:
+        while time.time()-ts<20:
             line = self.ser.readline()[:-2]
             if len(line)>=14:
                 fv, fh1, fh2 = self.get_forces_from_reading(line)
                 force_readings.append([fv, fh1, fh2])
+        tf = time.time()
         force_readings = np.array(force_readings)
         result_dict = {'fv':list(force_readings[:, 0]),'fh1':list(force_readings[:, 1]),
-                       'fh2':list(force_readings[:, 2])}
+                       'fh2':list(force_readings[:, 2]), 't':[ts, tf]}
         success = input('Success?')
-        fname = str(datetime.now().strftime('%Y%m-%d%H-%M%S-'))+success+'.json'
+        fname = str(datetime.now().strftime('%Y%m-%d%H-%M%S-'))+'fsensor'+success+'.json'
         with open(fname, 'w+') as f:
             json.dump(result_dict, f)
         print(success, fname, result_dict)

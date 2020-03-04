@@ -5,8 +5,9 @@ Created on Fri Nov 22 12:13:35 2019
 
 @author: stan
 """
-
+import datetime
 import sys
+import time
 # Import the arm module
 from r12 import arm
 
@@ -305,7 +306,11 @@ class Robot():
     def run_encoded_pickup(self):
         inp = input('Start')
         
+        log = []
+        
+        log.append(str(self.get_cart_pos())+str(time.time()))
         # GET TO POSITION 1
+        self.to_joint(print_read=False)
         self.arm.write('TELL WAIST -127 MOVETO')
         print(self.arm.read())
         self.arm.write('TELL SHOULDER 3437 MOVETO')
@@ -315,39 +320,41 @@ class Robot():
         self.arm.write('TELL WRIST -2854 MOVETO')
         print(self.arm.read())
         self.arm.write('TELL ELBOW 6011 MOVETO')
+        print(self.arm.read())
+        self.to_cartesian(print_read=False)
+        log.append(str(self.get_cart_pos())+str(time.time()))
         
         inp = input('Position 1 achieved, proceed?')
         
-        self.arm.write('CARTESIAN')
-        print(self.arm.read())
-        self.arm.write('100 -800 -500 MOVE')
-        print(self.arm.read())
-        self.arm.write('JOINT')
-        print(self.arm.read())
+        log.append(str(self.get_cart_pos())+str(time.time()))
+        self.move_by_cart(100, -800, -500, print_read=False)
+        self.to_joint(print_read=False)
         self.arm.write('TELL WRIST -2000 MOVE')
-        print(self.arm.read())
-        
+        self.arm.read()
+        log.append(str(self.get_cart_pos())+str(time.time()))
+        self.to_cartesian(print_read=False)        
+        log.append(str(self.get_cart_pos())+str(time.time()))
         
         inp = input('Position 2 achieved, proceed?')
         
-        
-        self.arm.write('CARTESIAN')
-        print(self.arm.read())
-        self.arm.write('100 400 -100 MOVE')
-        print(self.arm.read())
-        self.arm.write('JOINT')
-        print(self.arm.read())
+        log.append(str(self.get_cart_pos())+str(time.time()))
+        self.move_by_cart(100, 400, -100, print_read=False)
+        self.to_joint(print_read=False)
         self.arm.write('TELL L-HAND WRIST -1000 MOVE')
-        print(self.arm.read())
+        log.append(str(self.get_cart_pos())+str(time.time()))
+        self.arm.read()
+        self.to_cartesian(print_read=False)        
+        log.append(str(self.get_cart_pos())+str(time.time()))
         
-        inp = input('Position 3 achieved, proceed?')
+        inp = input('Position 3 achieved, proceed?')        
         
-        self.arm.write('CARTESIAN')
-        print(self.arm.read())
-        self.arm.write('0 0 1500 MOVE')
-        print(self.arm.read())
+        log.append(str(self.get_cart_pos())+str(time.time()))
+        self.move_by_cart(0, 0, 1500, print_read=False)        
+        log.append(str(self.get_cart_pos())+str(time.time()))
         
-        
+        fname = str(datetime.now().strftime('%Y%m-%d%H-%M%S-'))+'robot.json'
+        with open(fname, 'w+') as f:
+            f.write(log)
     # OLD FUNCTIONS
 
     def rotate_by_old(self, joint, dirn=1, deg=120):
