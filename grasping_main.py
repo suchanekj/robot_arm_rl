@@ -3,6 +3,8 @@
 from force_sensor import ForceSensor
 from genetic_agent import GeneticAgent
 from robot import Robot
+
+import json
 import numpy as np
 
 X_RANGE = [-2000, 2000]
@@ -92,7 +94,9 @@ def main():
         # Run learning agent to get new trajectories
         generation_to_execute = geneticAgent.get_new_generation(np.array(generation_executed)) 
 
-
+    with open('training_log', 'w+') as f:
+        json.dump(training_log, f)
+    print('Training complete')
 
 if __name__ == "__main__":
     main()
