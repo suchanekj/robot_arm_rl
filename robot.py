@@ -5,8 +5,7 @@ Created on Fri Nov 22 12:13:35 2019
 
 @author: stan
 """
-import datetime
-import sys
+import json
 import time
 # Import the arm module
 from r12 import arm
@@ -193,7 +192,71 @@ class Robot():
             self.to_cartesian(print_read=False)
             self.move_to_cart(x,y,z)
             self.to_joint(print_read=False)
-
+            
+            
+    def run_trajectory(self, traj):
+        """ Accepts length 15 array, traj
+         Assume each point consists of values for [WAIST, SHOULDER, ELBOW, L-HAND, WRIST] in this order""" 
+        assert len(traj) == 15
+        
+        # Extracts the three points
+        first_point = traj[0:5]
+        second_point = traj[5:10]
+        third_point = traj[10:]
+        points = [first_point, second_point, third_point]
+    
+        # Print out for debugging
+        print("First point:", first_point)
+        print("Second point:", second_point)
+        print("Third point:", third_point)
+        
+        position_log = []
+        
+        # Get robot to move to the 3 points
+        for n in range (len(points)):
+            print("Point {}".format(n+1))
+            # Wait 3 seconds between moving between the two points for 
+            # human to be able to observe transitions
+            time.sleep(3)
+            # Select the point
+            point = points[n]
+            x = point[0] # Assume first three values represent the xyz coordinate
+            y = point[1]
+            z = point[2]
+            l_hand_value = point[3] # Assume 4th value is the amount to move L_HAND by
+            wrist_value = point[4] # Assume 5th value is the amount to move WRIST by
+            
+            position_log.append(self.get_cart_pos_time())
+            
+            # Move to cartesian position
+            # Check if safe first
+            cartesian_roboforth_command = '{} {} {} MOVETO'.format(x, y, z)
+            self.is_safe_cartesian(cartesian_roboforth_command)
+            # Now move if safe
+            self.move_to_cart(x, y, z)
+    
+            position_log.append(self.get_cart_pos_time())
+    
+            # Move L_HAND, have to move WRIST as well - the two are not independent
+            # Check if safe first
+            l_hand_roboforth_command = 'TELL L-HAND {} MOVETO'.format(l_hand_value)
+            self.is_safe_joint(l_hand_roboforth_command)
+            # Now move if safe
+            self.rotate_by('L-HAND', l_hand_value)
+            
+            position_log.append(self.get_cart_pos_time())
+            
+            # Move WRIST
+            # Check if safe first
+            wrist_roboforth_command = 'TELL WRIST {} MOVETO'.format(wrist_value)
+            self.is_safe_joint(wrist_roboforth_command)
+            # Now move if safe
+            self.rotate_by('WRIST', wrist_value)
+            
+            position_log.append(self.get_cart_pos_time())
+            
+        return position_log
+    
     def write_command(self, command, print_read=True):
         """ Writes a passed command argument to the robot arm,
         expects ROBOFORTH language
@@ -251,7 +314,7 @@ class Robot():
         hand_coords = self.get_joint_pos()
         print("joint coords", hand_coords)
 
-        if (action.split()[0] == "TELL") and (action.split()[1] == "HAND"):
+        if (action.split()[0] == "TELL") and (action.split()[1] == "L-HAND"):
             # TODO add differentiation for relative and absolute commands (MOVE/MOVETO)
             hand_movement = int(action.split()[2])
 
@@ -302,13 +365,31 @@ class Robot():
                 pass #check pitch
             elif (hand_coords[2] <= -1000) and (hand_coords[2] > -1500):
                 pass #check pitch
-            
+    
+    def get_cart_pos_time(self):
+        return self.get_cart_pos()+[time.time()]
+    
+    def reset(self):
+        self.move_home()
+        self.to_joint(print_read=False)
+        self.arm.write('TELL WAIST -127 MOVETO')
+        print(self.arm.read())
+        self.arm.write('TELL SHOULDER 3437 MOVETO')
+        print(self.arm.read())
+        self.arm.write('TELL L-HAND 757 MOVETO')
+        print(self.arm.read())
+        self.arm.write('TELL WRIST -2854 MOVETO')
+        print(self.arm.read())
+        self.arm.write('TELL ELBOW 6011 MOVETO')
+        print(self.arm.read())
+        self.to_cartesian(print_read=False)
+        
     def run_encoded_pickup(self):
         inp = input('Start')
-        
+        trial_name = input('Enter trial number or name: ')
         log = []
         
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         # GET TO POSITION 1
         self.to_joint(print_read=False)
         self.arm.write('TELL WAIST -127 MOVETO')
@@ -322,39 +403,43 @@ class Robot():
         self.arm.write('TELL ELBOW 6011 MOVETO')
         print(self.arm.read())
         self.to_cartesian(print_read=False)
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         
         inp = input('Position 1 achieved, proceed?')
         
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         self.move_by_cart(100, -800, -500, print_read=False)
         self.to_joint(print_read=False)
         self.arm.write('TELL WRIST -2000 MOVE')
         self.arm.read()
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         self.to_cartesian(print_read=False)        
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         
         inp = input('Position 2 achieved, proceed?')
         
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         self.move_by_cart(100, 400, -100, print_read=False)
         self.to_joint(print_read=False)
         self.arm.write('TELL L-HAND WRIST -1000 MOVE')
-        log.append(str(self.get_cart_pos())+str(time.time()))
         self.arm.read()
         self.to_cartesian(print_read=False)        
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         
         inp = input('Position 3 achieved, proceed?')        
         
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         self.move_by_cart(0, 0, 1500, print_read=False)        
-        log.append(str(self.get_cart_pos())+str(time.time()))
+        log.append(self.get_cart_pos_time())
         
-        fname = str(datetime.now().strftime('%Y%m-%d%H-%M%S-'))+'robot.json'
+        fname = trial_name+'robot.json'
         with open(fname, 'w+') as f:
-            f.write(log)
+            json.dump({'log': log}, f)
+            
+    def __del__(self):
+        self.de_energise()
+        self.disconnect()
+    
     # OLD FUNCTIONS
 
     def rotate_by_old(self, joint, dirn=1, deg=120):
@@ -419,7 +504,7 @@ class Robot():
 
     		if (hand_coords[0] + hand_movement < hand_min) or (hand_coords[0] + hand_movement > hand_max):
     			raise Exception('Motion is not safe!')
-
+    
         
 
 

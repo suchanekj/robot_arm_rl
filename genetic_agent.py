@@ -37,7 +37,7 @@ class GeneticAgent(object):
         old_vectors = list(old_generation[:,0])
         new_generation = np.array([old_generation[0][0]])
         # when reached high reward for an extended period, stop forcing diversity
-        if old_generation[0][1] > self.reward_th:
+        if old_generation[0][1] >= self.reward_th:
             self.diversity_factor = 0
         while len(new_generation)!=len(old_generation):
             # Randomly choose the genetic alteration applied
@@ -116,11 +116,24 @@ class GeneticAgent(object):
         new_trajectory = (np.random.random()*0.1+0.95)*vec
         return new_trajectory
     
+def f(x, y):
+    return np.exp(-(x*x+y*y))*(np.cos(2*np.pi*x)**2)*(np.cos(2*np.pi*y)**2)
+
 def main():
-    geneticAgent = GeneticAgent(0.3, 0.5, 0.2, 1.0, 1, 1, [[0, 1], [0, 1]], 10)
-    old_generation = np.array([[[0.2, 0.7], 5], [[0.1, 0.8], 5], [[0.3, 0.4],5]])
-    new_generation = geneticAgent.get_new_generation(old_generation)
-    print(new_generation)
+    generation = []
+    xrange = [-2.0, 2.0]
+    yrange = [-2.0, 2.0]
+    for i in range(15):
+        generation.append([np.random.random()*(xrange[1]-xrange[0])+xrange[0],
+                          np.random.random()*(yrange[1]-yrange[0])+yrange[0]])
+    geneticAgent = GeneticAgent(0.4, 0.3, 0.3, 0.3, 1, 1, [xrange, yrange], 0.9)
+    for itr in range(0, 100):
+        rewarded_generation = []
+        for sample in generation:
+            rewarded_generation.append([sample, f(sample[0], sample[1])])
+        rewarded_generation = np.array(rewarded_generation)
+        generation = geneticAgent.get_new_generation(rewarded_generation)
+        print(max(rewarded_generation[:, 1]))
     
 if __name__=='__main__':
     main()

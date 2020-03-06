@@ -54,7 +54,28 @@ class ForceSensor(object):
             self.ser = arduino_serial_port(self.port)
         except:
             raise Exception("Port not found")
-        
+    
+    """ Flushes the input buffer and returns the start of the logging time """
+    def start_logging_forces(self):
+        self.ser.flushInput()
+        ts=time.time()
+        return ts
+    
+    """ Reads the whole buffer, returns the list of forces between start and end
+     of the trial and the end time"""
+    def end_logging_forces(self):
+        lines = self.ser.read(self.ser.in_waiting).split(b'\r\n')
+        tf = time.time()
+        force_readings = []
+        for line in lines:
+            if len(line)>=14:
+                fv, fh1, fh2 = self.get_forces_from_reading(line)
+                force_readings.append([fv, fh1, fh2])
+        force_readings = np.array(force_readings)
+        force_log = {'fv':list(force_readings[:, 0]),'fh1':list(force_readings[:, 1]),
+                       'fh2':list(force_readings[:, 2])}
+        return force_log, tf
+    
     def get_forces_from_reading(self, line):
         if len(line)>=14:
             fv = float(line.split(b' ')[0])
@@ -63,13 +84,16 @@ class ForceSensor(object):
             return fv, fh1, fh2
         
     def test_connection(self):
+        self.ser.flushInput()
         ts = time.time()
-        while time.time()-ts<10:
+        while time.time()-ts<5: 
             line = self.ser.readline()[:-2]
-            #print(line)
             print(self.get_forces_from_reading(line))
+        #print(self.ser.read(self.ser.in_waiting).split(b'\n'))
+        
     
     def log_pickup(self):
+        trial_name = input('Enter trial number or name: ')
         force_readings = []
         ts = time.time()
         while time.time()-ts<20:
@@ -81,15 +105,13 @@ class ForceSensor(object):
         force_readings = np.array(force_readings)
         result_dict = {'fv':list(force_readings[:, 0]),'fh1':list(force_readings[:, 1]),
                        'fh2':list(force_readings[:, 2]), 't':[ts, tf]}
-        success = input('Success?')
-        fname = str(datetime.now().strftime('%Y%m-%d%H-%M%S-'))+'fsensor'+success+'.json'
+        fname = trial_name+'fsensor'+'.json'
         with open(fname, 'w+') as f:
             json.dump(result_dict, f)
-        print(success, fname, result_dict)
-    
+        print(fname, result_dict)
     def __del__(self):
         self.ser.close()
         
 forceSensor = ForceSensor()
 #forceSensor.test_connection()
-forceSensor.log_pickup()
+forceSensor.test_connection()
