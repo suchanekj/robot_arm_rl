@@ -112,6 +112,6 @@ class ForceSensor(object):
     def __del__(self):
         self.ser.close()
         
-forceSensor = ForceSensor()
+#forceSensor = ForceSensor()
 #forceSensor.test_connection()
-forceSensor.test_connection()
+#forceSensor.test_connection()

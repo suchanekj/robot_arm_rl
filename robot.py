@@ -220,18 +220,18 @@ class Robot():
             time.sleep(3)
             # Select the point
             point = points[n]
-            x = point[0] # Assume first three values represent the xyz coordinate
-            y = point[1]
-            z = point[2]
-            l_hand_value = point[3] # Assume 4th value is the amount to move L_HAND by
-            wrist_value = point[4] # Assume 5th value is the amount to move WRIST by
+            x = int(point[0]) # Assume first three values represent the xyz coordinate
+            y = int(point[1])
+            z = int(point[2])
+            l_hand_value = int(point[3]) # Assume 4th value is the amount to move L_HAND by
+            wrist_value = int(point[4]) # Assume 5th value is the amount to move WRIST by
             
             position_log.append(self.get_cart_pos_time())
             
             # Move to cartesian position
             # Check if safe first
-            cartesian_roboforth_command = '{} {} {} MOVETO'.format(x, y, z)
-            self.is_safe_cartesian(cartesian_roboforth_command)
+            #cartesian_roboforth_command = '{} {} {} MOVETO'.format(x, y, z)
+            #self.is_safe_cartesian(cartesian_roboforth_command)
             # Now move if safe
             self.move_to_cart(x, y, z)
     
@@ -239,19 +239,19 @@ class Robot():
     
             # Move L_HAND, have to move WRIST as well - the two are not independent
             # Check if safe first
-            l_hand_roboforth_command = 'TELL L-HAND {} MOVETO'.format(l_hand_value)
-            self.is_safe_joint(l_hand_roboforth_command)
+            #l_hand_roboforth_command = 'TELL L-HAND {} MOVETO'.format(l_hand_value)
+            #self.is_safe_joint(l_hand_roboforth_command)
             # Now move if safe
-            self.rotate_by('L-HAND', l_hand_value)
+            self.move_to_joint('L-HAND', l_hand_value)
             
             position_log.append(self.get_cart_pos_time())
             
             # Move WRIST
             # Check if safe first
-            wrist_roboforth_command = 'TELL WRIST {} MOVETO'.format(wrist_value)
-            self.is_safe_joint(wrist_roboforth_command)
+            #wrist_roboforth_command = 'TELL WRIST {} MOVETO'.format(wrist_value)
+            #self.is_safe_joint(wrist_roboforth_command)
             # Now move if safe
-            self.rotate_by('WRIST', wrist_value)
+            self.move_to_joint('WRIST', wrist_value)
             
             position_log.append(self.get_cart_pos_time())
             
@@ -290,20 +290,22 @@ class Robot():
         self.energised = None
         self.calibrated = None
 
-    def rotate_by(self, joint, dirn=1, deg=120):
+    def move_to_joint(self, joint, deg):
         # dirn is 1 or -1 moves joint in opposite directions
         if self.mode == 'j':
-            deg = deg*dirn
             # move arm
             if joint == 'L-HAND':            
-                self.arm.write('TELL L-HAND WRIST {} {} MOVE'.format(deg, deg))
+                self.arm.write('TELL L-HAND WRIST {} {} MOVETO'.format(deg, deg))
             else:
-                self.arm.write('TELL {} {} MOVE'.format(joint, deg))
+                self.arm.write('TELL {} {} MOVETO'.format(joint, deg))
             # wait for return message
             return_msg = self.arm.read()
             # reset to original position if encountered a problem
             if return_msg.split()[-2] != 'OK':
                 self.reset()
+        else:
+            self.to_joint()
+            self.move_to_joint(joint, deg=deg)
     
     def is_safe_joint(self, action, hand_min=-2000, hand_max=6800):
         """ Checks whether the action passed to the robot is safe
@@ -332,7 +334,7 @@ class Robot():
 
         if (action.split()[3] == "MOVETO"):
             x_movement = int(action.split()[0])
-            y_movement = int(action.split()[1])
+            y_movement = int(action.split2000()[1])
             z_movement = int(action.split()[2])
             pitch = int(action.split()[3])
 
@@ -374,13 +376,13 @@ class Robot():
         self.to_joint(print_read=False)
         self.arm.write('TELL WAIST -127 MOVETO')
         print(self.arm.read())
-        self.arm.write('TELL SHOULDER 3437 MOVETO')
+        self.arm.write('TELL SHOULDER 2394 MOVETO')
         print(self.arm.read())
-        self.arm.write('TELL L-HAND 757 MOVETO')
+        self.arm.write('TELL L-HAND 1722 MOVETO')
         print(self.arm.read())
-        self.arm.write('TELL WRIST -2854 MOVETO')
+        self.arm.write('TELL WRIST -1768 MOVETO')
         print(self.arm.read())
-        self.arm.write('TELL ELBOW 6011 MOVETO')
+        self.arm.write('TELL ELBOW 5308 MOVETO')
         print(self.arm.read())
         self.to_cartesian(print_read=False)
         
